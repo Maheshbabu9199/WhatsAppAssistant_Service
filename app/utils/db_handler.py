@@ -16,8 +16,12 @@ class DBHandler(metaclass=SingletonClass):
     async def insertDocs(self, collection_name:str=None, data:list[dict] = {}):
         try:
             logging.info(f"started inserting data into {collection_name}")
-            collection = self.client[collection_name]
-            result = await collection.insert_many(data)
+            
+            async with await self.client.start_session() as session:
+                async with session.start_transaction():
+                    collection = self.client[collection_name]
+                    result = await collection.insert_many(data, session=session, ordered=True)
+
             return result.inserted_ids
         
         except Exception as exe:
@@ -28,9 +32,11 @@ class DBHandler(metaclass=SingletonClass):
     async def updateDocs(self, collection_name:str=None, query:dict={}, new_values:dict={}):
         try:
             logging.info(f"started updating data into {collection_name}")
-            collection = self.client[collection_name]
-            logging.info(f"updating documents in {collection_name} with query: {query} to new values: {new_values}")
-            result = await collection.update_many(query, {'$set': new_values})
+            async with await self.client.start_session() as session:
+                async with session.start_transaction():
+                    collection = self.client[collection_name]
+                    result = await collection.update_many(query, {'$set': new_values}, session=session)
+            logging.info(f"updated documents in {collection_name} with query: {query} to new values: {new_values}")
             return result.modified_count
 
         except Exception as exec:
@@ -41,9 +47,11 @@ class DBHandler(metaclass=SingletonClass):
     
     async def readDocs(self, collection_name:str=None, query:dict={}):
         try:
-            collection = self.client[collection_name]
             logging.info(f"reading documents from {collection_name} with query: {query}")
-            result = await collection.find(query).to_list(length=None)
+            async with await self.client.start_session() as session:
+                async with session.start_transaction():
+                    collection = self.client[collection_name]
+                    result = await collection.find(query).to_list(length=None)
             return result
 
         except Exception as exec:
@@ -52,9 +60,13 @@ class DBHandler(metaclass=SingletonClass):
 
     async def deleteDocs(self, collection_name:str=None, query:dict=None):
         try:
-            collection = self.client[collection_name]
             logging.critical(f"deleting documents from {collection_name} with query: {query}")
-            result = await collection.delete_many(query)
+            
+            async with await self.client.start_session() as session:
+                async with session.start_transaction():
+                    collection = self.client[collection_name]
+                    result = await collection.delete_many(query, session=session)
+            
             return result.deleted_count
 
         except Exception as exec:
