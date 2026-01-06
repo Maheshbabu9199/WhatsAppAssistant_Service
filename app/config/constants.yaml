@@ -1,6 +1,6 @@
 logging_config:
   logging_folder: logs
   log_file: app.log
-  log_level: INFO
+  log_level: DEBUG
 
 

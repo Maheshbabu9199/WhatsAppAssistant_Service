@@ -11,21 +11,41 @@ class CustomLogger:
 
 
 
-        logs_folder = os.path.join(os.getcwd(), ConstantsRetriever.get_constants('logging_config')['logging_folder'])
+        
+
+        logger = logging.getLogger(name)
+
+        # Prevent duplicate handlers
+        if logger.handlers:
+            return logger
+
+        logging_config = ConstantsRetriever.getConstants("logging_config")
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        logs_folder = os.path.join(base_dir, logging_config["logging_folder"])
         os.makedirs(logs_folder, exist_ok=True)
 
-        # name_format = datetime.now().strftime("%Y_%M_%d:%H_%m_%S")
-        file_name = os.path.join(logs_folder, ConstantsRetriever.get_constants('logging_config')['log_file'])
+        file_name = os.path.join(logs_folder, logging_config["log_file"])
 
-        logging_format = "%(asctime)s: %(levelname)s: %(filename)s: %(funcName)s: %(message)s"
-        logging.basicConfig(filemode='w', filename=file_name,
-                             format=logging_format, 
-                             level=ConstantsRetriever.get_constants('logging_config')['log_level'])
+        formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)s | %(name)s | "
+            "%(filename)s:%(lineno)d | %(message)s"
+        )
 
-        
-        logger = logging.getLogger(name)
-        logger.setLevel(logging.INFO)
-        
+        handler = logging.FileHandler(file_name, mode="a")
+        handler.setFormatter(formatter)
+        handler.setLevel(logging.DEBUG)
+
+        logger.addHandler(handler)
+        logger.setLevel(logging.DEBUG)
+
+        streamhandler = logging.StreamHandler()
+        streamhandler.setFormatter(formatter)
+        logger.addHandler(streamhandler)
+        logger.setLevel(logging.DEBUG)
+
+        logger.propagate = False 
+
         return logger
 
 
