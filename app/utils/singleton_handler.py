@@ -1,5 +1,3 @@
-
-
 class SingletonClass(type):
     _instances = {}
 
