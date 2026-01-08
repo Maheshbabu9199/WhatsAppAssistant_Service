@@ -23,8 +23,7 @@ class CustomLogger:
         file_name = os.path.join(logs_folder, logging_config["log_file"])
 
         formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(name)s | "
-            "%(filename)s:%(lineno)d | %(message)s"
+            "%(asctime)s | %(levelname)s | %(name)s | line no:%(lineno)d | %(message)s"
         )
 
         handler = logging.FileHandler(file_name, mode="a")

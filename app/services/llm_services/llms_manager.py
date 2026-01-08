@@ -16,6 +16,9 @@ class LLMsManager:
         self,
     ) -> None:
         self.llm_service = self.get_llm_service()
+        self.prompt = opik_client.get_chat_prompt(
+            name=PromptNames.WHATSAPP_SERVICE_CHAT_PROMPT.value
+        )
 
     def get_llm_service(self) -> LLMService:
         provider = ConstantsRetriever.get_constants("LLM_PROVIDER")
@@ -32,14 +35,14 @@ class LLMsManager:
 
     async def generate_response(self, user_id: str, user_message: str) -> str:
         try:
-            prompt = opik_client.get_chat_prompt(
-                name=PromptNames.WHATSAPP_SERVICE_CHAT_PROMPT.value
-            )
+            prompt = self.prompt
             chat_prompt = prompt.format({"user_input": user_message})
 
-            return await self.llm_service.generate_response(
+            response = await self.llm_service.generate_response(
                 chat_prompt=chat_prompt, user_id=user_id
             )
+
+            return response
 
         except Exception as exec:
             logger.error(f"Error: Reporting from llms manager: {exec}", exc_info=True)

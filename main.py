@@ -21,12 +21,12 @@ async def lifespan(app: FastAPI):
 
     app.state.service_handler = ServiceHandler(app.state.db_handler)
 
-    await app.state.db_handler.connection.admin.command("ping")
+    await app.state.db_handler.client.admin.command("ping")
     logger.critical("Connected to MongoDB successfully.")
 
     yield
 
-    await app.state.db_handler.connection.close()
+    await app.state.db_handler.client.close()
     logger.info("WhatsApp Assistant Service has shut down successfully.")
 
 

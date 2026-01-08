@@ -20,6 +20,8 @@ dependencies = [
     "python-multipart>=0.0.20",
     "pyyaml>=6.0.3",
     "ruff>=0.14.9",
+    "setuptools>=80.9.0",
+    "snakeviz>=2.2.2",
     "twilio>=9.8.8",
     "uvicorn>=0.38.0",
 ]

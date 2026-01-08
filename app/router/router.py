@@ -1,15 +1,16 @@
 from typing import cast
-
 from fastapi import APIRouter
 from fastapi.requests import Request
 from fastapi.responses import ORJSONResponse
-
 from app.config.datamodels import MessageRequest
 from app.services.service_handler import ServiceHandler
 from app.utils.db_handler import DBHandler
 from app.utils.logging_handler import CustomLogger
+import cProfile
+import time
 
 logger = CustomLogger.get_logger(__name__)
+
 logger.info("Router module loaded successfully.")
 
 
@@ -18,6 +19,8 @@ class AppState:
     service_handler: ServiceHandler
 
 
+profiler = cProfile.Profile()
+profiler.enable()
 api_router = APIRouter()
 
 
@@ -35,6 +38,7 @@ async def receive_messages(payload: Request):
 
         app_state = cast(AppState, payload.app.state)
         body = await payload.form()
+        start_time = time.time()
 
         message_request = MessageRequest(
             profilename=body.get("ProfileName"),
@@ -49,8 +53,18 @@ async def receive_messages(payload: Request):
         reply_message = await app_state.service_handler.process_incoming_message(
             message_request
         )
+        profiler.disable()
+
+        # s = io.StringIO()
+        # stats = pstats.Stats(profiler, stream=s)
+        # stats.sort_stats("cumulative")
+        # stats.print_stats(30)
+
+        # print(s.getvalue())
 
         logger.critical(f"Reply message generated: {reply_message}")
+
+        logger.warning(f"TOTAL TIME TAKEN: {time.time() - start_time} seconds")
         return ORJSONResponse(
             content={"status": "success", "body": reply_message},
             status_code=200,

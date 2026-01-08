@@ -50,7 +50,7 @@ class GroqLLMService(LLMService):
                 },
             )
 
-            return response.content
+            return response
 
         except Exception as exec:
             logger.error(

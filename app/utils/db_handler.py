@@ -10,8 +10,7 @@ class DBHandler(metaclass=SingletonClass):
     def __init__(self, conn_string: str = "", database_name: str = ""):
         self.conn_string = conn_string
         self.database_name = database_name
-        self.connection = AsyncMongoClient(host=self.conn_string)
-        self.client = self.connection[self.database_name]
+        self.client = AsyncMongoClient(host=self.conn_string)
 
     async def insertDocs(self, collection_name: str = None, data: list[dict] = []):
         """
@@ -20,9 +19,11 @@ class DBHandler(metaclass=SingletonClass):
         try:
             logger.info(f"started inserting data into {collection_name}")
 
-            async with await self.client.start_session() as session:
-                async with session.start_transaction():
-                    collection = self.client[collection_name]
+            async with self.client.start_session() as session:
+                async with await session.start_transaction():
+                    collection = self.client.get_database(
+                        self.database_name
+                    ).get_collection(collection_name)
                     result = await collection.insert_many(
                         documents=data, session=session, ordered=True
                     )
@@ -41,16 +42,21 @@ class DBHandler(metaclass=SingletonClass):
     ):
         try:
             logger.info(f"started updating data into {collection_name}")
-            async with await self.client.start_session() as session:
-                async with session.start_transaction():
-                    collection = self.client[collection_name]
+            async with self.client.start_session() as session:
+                async with await session.start_transaction():
+                    collection = self.client.get_database(
+                        self.database_name
+                    ).get_collection(collection_name)
                     result = await collection.update_many(
                         query, {"$set": new_values}, session=session
                     )
-            logger.info(
-                f"updated documents in {collection_name} \
-                with query: {query} to new values: {new_values}"
-            )
+
+            logger.critical(f"result modified count: {result.modified_count}")
+            if result.modified_count == 0:
+                logger.info(f"no documents found to update in {collection_name}")
+            else:
+                logger.info(f"updated documents in {collection_name}")
+
             return result.modified_count
 
         except Exception as exec:
@@ -63,9 +69,11 @@ class DBHandler(metaclass=SingletonClass):
         """
         try:
             logger.info(f"reading documents from {collection_name} with query: {query}")
-            async with await self.client.start_session() as session:
-                async with session.start_transaction():
-                    collection = self.client[collection_name]
+            async with self.client.start_session() as session:
+                async with await session.start_transaction():
+                    collection = self.client.get_database(
+                        self.database_name
+                    ).get_collection(collection_name)
                     result = await collection.find(query).to_list(length=None)
             return result
 
@@ -83,20 +91,21 @@ class DBHandler(metaclass=SingletonClass):
                 with query: {query}"
             )
 
-            async with await self.client.start_session() as session:
-                async with session.start_transaction():
-                    collection = self.client[collection_name]
+            async with self.client.start_session() as session:
+                async with await session.start_transaction():
+                    collection = self.client.get_database(
+                        self.database_name
+                    ).get_collection(collection_name)
                     result = await collection.delete_many(query, session=session)
-
             return result.deleted_count
 
         except Exception as exec:
             logger.error(f"error while deleting data: {exec}", exc_info=True)
             raise exec
 
-    def closeConnection(self):
+    async def closeConnection(self):
         try:
-            self.connection.close()
+            await self.client.close()
             logger.info("Database connection closed successfully.")
 
         except Exception as exec:
